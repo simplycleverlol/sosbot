@@ -111,7 +111,7 @@ async def regularmsg(message: types.Message):
 
 @dp.message_handler(commands=['help'])
 async def send_help(message: types.Message):
-    message.answer("""
+    await message.answer("""
 Данный бот позволяет активировать тревожную кнопку в коворкинге на мясницкой.
 Добавьте его в рабочий чат, или напишите в личные сообщения.
 Реагирует на сообщения, содержащие sos, тревога или омон
