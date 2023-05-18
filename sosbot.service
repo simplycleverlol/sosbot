@@ -1,0 +1,13 @@
+[Unit]
+Description=Tg Bot for cameras
+
+[Service]
+User=boss
+WorkingDirectory=/home/boss/notifybot
+VIRTUAL_ENV=/home/boss/notifybot/venv
+Environment=PATH=$VIRTUAL_ENV/bin:$PATH
+ExecStart=/home/boss/notifybot/venv/bin/python notify.py
+Restart=always
+RestartSec=5
+[Install]
+WantedBy=multi-user.target
