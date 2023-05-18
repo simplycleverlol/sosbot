@@ -65,24 +65,26 @@ def bins(a, x):
             l = m
         else: r = m
     return r
+def findc(l, c):
+    p = bins(l, c)
+    return p if p < len(l) and l[p] == c else -1
+
 def checkc(c):
-    global config
-    l = config['chats']
-    return bins(l, c) < len(l)
+    return findc(config['chats'], c) != -1
 
 def addc(c):
     global config
     l = config['chats']
-    x = bins(l, c)
-    if x == len(l):
+    x = findc(l, c)
+    if x == -1:
         l.append(c)
         l.sort()
 
 def remc(c):
     global config
     l = config['chats']
-    x = bins(l, c)
-    if x < len(l):
+    x = findc(l, c)
+    if x != -1:
         l.pop(x)
 
 
