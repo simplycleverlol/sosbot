@@ -6,7 +6,7 @@ User=sos
 WorkingDirectory=/home/sos/sosbot
 VIRTUAL_ENV=/home/sos/sosbot/venv
 Environment=PATH=$VIRTUAL_ENV/bin:$PATH
-ExecStart=$VIRTUAL_ENV/bin/python bot.py
+ExecStart=/home/sos/sosbot/venv/bin/python bot.py
 Restart=always
 RestartSec=5
 [Install]
