@@ -1,12 +1,12 @@
 [Unit]
-Description=Tg Bot for cameras
+Description= Sos button bot
 
 [Service]
-User=boss
-WorkingDirectory=/home/boss/notifybot
-VIRTUAL_ENV=/home/boss/notifybot/venv
+User=sos
+WorkingDirectory=/home/sos/sosbot
+VIRTUAL_ENV=/home/sos/sosbot/venv
 Environment=PATH=$VIRTUAL_ENV/bin:$PATH
-ExecStart=/home/boss/notifybot/venv/bin/python notify.py
+ExecStart=$VIRTUAL_ENV/bin/python bot.py
 Restart=always
 RestartSec=5
 [Install]

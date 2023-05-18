@@ -1,7 +1,20 @@
-import os, json, logging, random
-from aiogram import Bot, Dispatcher, executor, types
-from paho.mqtt import client as mqtt_client
-logging.basicConfig(level=logging.INFO)
+for i in range(2):
+    try:
+        import os, sys, json, logging, random
+        from datetime import datetime as dt
+        from aiogram import Bot, Dispatcher, executor, types
+        from paho.mqtt import client as mqtt_client
+        break
+    except ModuleNotFoundError as e:
+        print(e)
+        os.system(sys.executable + ' -m pip install paho.mqtt aiogram')
+
+
+logging.basicConfig(level=logging.INFO, 
+                    filename = f'soslog-{dt.now().year}-{dt.now().month}.log',
+                    format='%(asctime)s %(levelname)s: %(message)s',
+                    encoding='utf-8')
+
 class storage(dict):
     def __init__(self, name : str):
         TEMPLATEVAL = {'chats': [], 'master': None,
@@ -10,7 +23,7 @@ class storage(dict):
                             'server': '127.0.0.1', 
                             'login' : None, 
                             'pass': None,
-                            'topic':'myaso/sos/sos'
+                            'topic':''
                         }
                         }
         self.name = name
@@ -34,6 +47,15 @@ class storage(dict):
     def read(self):
         with open(self.name, 'r') as f:
             self.update(json.load(f))
+
+config = storage('cnf.json')
+
+bot = Bot(token=config['api'])
+dp = Dispatcher(bot)
+inline_ctp = types.InlineKeyboardMarkup().add(types.InlineKeyboardButton('Вызов Росгвардии', callback_data="ctp"))
+cl = mqtt_client.Client(f'sos{random.random()}')
+cl.username_pw_set(config['mqtt']['login'], config['mqtt']['pass'])
+
 
 def bins(a, x):
     l, r = -1, len(a)
@@ -64,32 +86,39 @@ def remc(c):
         l.pop(x)
 
 
-config = storage('cnf.json')
+def msginfo(m, chat = None):
+    if chat is None:
+        chat = m.chat
+    try:
+        return f'User: @{m.from_user.username} #{m.from_user.id} "{m.from_user.full_name}" Chat: #{chat.id} "{chat.title}"'
+    except:
+        try:
+            return f'User: @{m.from_user.username} #{m.from_user.id} "{m.from_user.full_name}"'
+        except:
+            return f'User: #{m.from_user.id}'
 
-bot = Bot(token=config['api'])
-dp = Dispatcher(bot)
-inline_ctp = types.InlineKeyboardMarkup().add(types.InlineKeyboardButton('Вызов Росгвардии', callback_data="ctp"))
 
 def fsos(mtext):
     mtext = mtext.text.lower().split()
     return any(word in mtext for word in ['sos', 'омон', 'тревога']) or mtext == ['!']
 
+
 @dp.message_handler(fsos)
 async def regularmsg(message: types.Message):
-    logging.info(f'Alarm msg received: Chat id: {message.chat.id}')
     if checkc(message.chat.id):
+        logging.info(f'Alarm msg received: {msginfo(message)}') 
         await message.reply('Необходима помощь?', reply_markup=inline_ctp)
-
 
 @dp.message_handler(commands=['start'])
 async def send_welcome(message: types.Message):
-    print(message)
+    logging.info(f'Start msg received: {msginfo(message)}') 
     if checkc(message.chat.id):
         await message.reply("Сервис активен")
     else:    await message.reply("Для активации отправьте кодовое слово ответным сообщением")
 
 @dp.message_handler(commands=['stop'])
 async def send_unwelcome(message: types.Message):
+    logging.info(f'Stop msg received: {msginfo(message)}') 
     if checkc(message.chat.id):
         remc(message.chat.id)
         config.save()
@@ -98,18 +127,19 @@ async def send_unwelcome(message: types.Message):
 
 @dp.message_handler(text = config['secret'])
 async def activate(message: types.Message):
+    logging.info(f'Secret msg received: {msginfo(message)}') 
     if checkc(message.chat.id):
         await message.reply('Уже активно')
     else:
+        addc(message.chat.id)
         config.save()
         logging.info(f'Activation for chat #{message.chat.id} : {message.chat.title} by {message.from_user.id} : {message.from_user.full_name}')
         await message.reply("Бот активирован!")
 
 
-
 @dp.callback_query_handler(text = 'ctp')
 async def process_callback_opendoor(callback_query: types.CallbackQuery):
-    logging.info(f'Called pollice by @{callback_query.from_user.username} ({callback_query.from_user.full_name} chat: {callback_query.message.chat.title})')
+    logging.warning(f'Called pollice by {msginfo(callback_query, callback_query.message.chat)})')
     await callback_query.answer()
     if callPolice():
         await callback_query.message.reply('Тревожная кнопка успешно нажата.')
@@ -119,16 +149,18 @@ async def process_callback_opendoor(callback_query: types.CallbackQuery):
 def callPolice():
     cnf = config['mqtt']
     try:
-        cl = mqtt_client.Client(f'sos{random.random()}')
-        cl.username_pw_set(cnf['login'], cnf['pass'])
-        cl.connect(cnf['server'], 1883)
-        return not cl.publish(cnf['topic']+'/in', '0')[0]
-    except:
+        cl.reconnect()
+        return not cl.publish(cnf['topic']+'/in', 'sos')[0]
+    except Exception as e:
+        logging.critical(e)
         return False
+
+
 
 
 if __name__ == "__main__":
     # Запуск бота
+    cl.connect(config['mqtt']['server'], 1883)
     executor.start_polling(dp)
 
 
